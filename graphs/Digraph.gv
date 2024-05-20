@@ -1,0 +1,26 @@
+digraph {
+	4 [label="H4-R2"]
+	5 [label="H5-R1"]
+	6 [label="H6-R1"]
+	subgraph outputs {
+		rank=same
+		3 [label="O3-R3"]
+		7 [label="O7-R2"]
+	}
+	subgraph inputs {
+		ordering=out rank=same
+		0 [label="B0-R0"]
+		1 [label="S1-R0"]
+		0 -> 1 [style=invis]
+		2 [label="S2-R0"]
+		1 -> 2 [style=invis]
+	}
+	0 -> 4
+	1 -> 4
+	2 -> 5
+	5 -> 4
+	4 -> 3
+	0 -> 6
+	6 -> 3
+	6 -> 7
+}
