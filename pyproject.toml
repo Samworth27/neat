@@ -11,6 +11,9 @@ viznet = "^0.3.0"
 networkx = "^3.3"
 matplotlib = "^3.9.0"
 graphviz = "^0.20.3"
+shed = "^2024.3.1"
+ssort = "^0.13.0"
+mypy = "^1.10.0"
 
 
 [build-system]

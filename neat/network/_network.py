@@ -1,34 +1,53 @@
-from genes2 import Genome, Gene
+from random import choice
+from neat.genome import Genome
+from neat.genome.gene import SynapseGene, NeuronGene, InputNeuronGene
+
+# class Mutate:
+#     def mutate_add_node(self:'Network', num_attempts:int = 5):
+#         for attempt in range(num_attempts):
+#             new_source = choice(self.neurons)
+#             new_target = choice(self.neurons)
+#             if new_source == new_target:
+#                 continue
+#             if issubclass(new_source.type, type(Gene.Neuron.Output)):
+#                 continue
+#             if issubclass(new_target.type, type(Gene.Neuron.Input)):
+#                 continue
+#             print(new_source, "->", new_target)
+#             break
 
 
 class Neuron:
-    def __init__(self, id):
+    def __init__(self, id) -> None:
         self.id = id
-        self.incoming: set['Synapse'] = None
-        self.outgoing: set['Synapse'] = None
-        self.rank:int = 0
-        self.type:Gene.Neuron = Gene.Neuron
+        self.incoming: set[Synapse]
+        self.outgoing: set[Synapse]
+        self.rank: int
+        self.type: type
 
     @classmethod
-    def from_gene(cls, gene: Gene.Neuron):
+    def from_gene(cls, gene: NeuronGene):
         new_instance = cls(gene.id)
         new_instance.type = type(gene)
+        if issubclass(new_instance.type, InputNeuronGene):
+            new_instance.rank = 0
         if gene.accept_incoming:
             new_instance.incoming = set()
             new_instance.rank = 1
         if gene.accept_outgoing:
             new_instance.outgoing = set()
         return new_instance
-    
-    def update_rank(self, source:'Neuron'):
+
+    def update_rank(self, source: "Neuron"):
         if self.rank <= source.rank:
             self.rank = source.rank + 1
             if self.outgoing:
                 for synapse in self.outgoing:
                     synapse.target.update_rank(self)
-    
+
     def __str__(self):
         return f"{self.type.text}{self.id}-R{self.rank}"
+
 
 class Synapse:
     def __init__(
@@ -46,7 +65,7 @@ class Synapse:
         self.enabled: bool = enabled
 
     @classmethod
-    def from_gene(cls, gene: Gene.Synapse, network: "Network"):
+    def from_gene(cls, gene: SynapseGene, network: "Network"):
         source: Neuron = network.neurons[gene.source_node]
         target: Neuron = network.neurons[gene.target_node]
         new_instance = cls(
@@ -56,15 +75,12 @@ class Synapse:
         target.incoming.add(new_instance)
         target.update_rank(source)
         return new_instance
-    
-
-
 
 class Network:
-    def __init__(self):
-        self.genome = genome
-        self.neurons:dict[int,Neuron] = dict()
-        self.synapses:dict[int,Synapse] = dict()
+    def __init__(self) -> None:
+        self.genome = Genome()
+        self.neurons: dict[int, Neuron] = {}
+        self.synapses: dict[int, Synapse] = {}
 
     @classmethod
     def from_genome(cls, genome: Genome):
@@ -73,10 +89,22 @@ class Network:
         new_instance._process_genome()
         return new_instance
 
-    def _process_genome(self):
+    def crossover(self, recessive_network: "Network") -> "Network":
+
+        child_genome = Genome.crossover(self.genome, recessive_network.genome, True)
+        child_network = Network.from_genome(child_genome)
+
+        return child_network
+
+    # def mutate(self)->None:
+    #     self.mutate_add_node()
+
+    def _process_genome(self) -> None:
         for gene in self.genome.neuron_genes:
             self.add_neuron(Neuron.from_gene(gene))
-        for gene in self.genome.synapse_genes:
+
+        for gene in self.genome.synapse_genes.iter_skip_nones():
+            print(gene)
             self.add_synapse(Synapse.from_gene(gene, self))
 
     def add_neuron(self, neuron: Neuron):
@@ -85,25 +113,3 @@ class Network:
     def add_synapse(self, synapse: Synapse):
         self.synapses[synapse.innovation_id] = synapse
 
-
-if __name__ == "__main__":
-    from draw2 import draw_network
-    genome = Genome()
-    genome.add_gene(Gene.Neuron.Input.Bias())
-    genome.add_gene(Gene.Neuron.Input.Sensor())
-    genome.add_gene(Gene.Neuron.Input.Sensor())
-    genome.add_gene(Gene.Neuron.Output())
-    genome.add_gene(Gene.Neuron.Hidden())
-    genome.add_gene(Gene.Neuron.Hidden())
-    genome.add_gene(Gene.Neuron.Hidden())
-    genome.add_gene(Gene.Neuron.Output())
-    genome.add_gene(Gene.Synapse(0, 4, 0.5, True))
-    genome.add_gene(Gene.Synapse(1, 4, 0.5, True))
-    genome.add_gene(Gene.Synapse(2, 5, 0.5, True))
-    genome.add_gene(Gene.Synapse(5, 4, 0.5, True))
-    genome.add_gene(Gene.Synapse(4, 3, 0.5, True))
-    genome.add_gene(Gene.Synapse(0,6, 0.5, True))
-    genome.add_gene(Gene.Synapse(6, 3, 0.5, True))
-    genome.add_gene(Gene.Synapse(6, 7, 0.5, True))
-    test = Network.from_genome(genome)
-    draw_network(test)
